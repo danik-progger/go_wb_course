@@ -1,0 +1,52 @@
+{
+    "action": "create_order",
+    "body": {
+        "order_uid": "b563feb7b2b84b6test-5",
+        "track_number": "WBILTRACK5",
+        "entry": "WBIL",
+        "delivery": {
+            "name": "Dave Example",
+            "phone": "+10000000005",
+            "zip": "10005",
+            "city": "City5",
+            "address": "Street 5",
+            "region": "Region5",
+            "email": "dave@example.com"
+        },
+        "payment": {
+            "transaction": "tx-5",
+            "request_id": "",
+            "currency": "USD",
+            "provider": "mockpay",
+            "amount": 500,
+            "payment_dt": 1637907731,
+            "bank": "bank5",
+            "delivery_cost": 25,
+            "goods_total": 475,
+            "custom_fee": 0
+        },
+        "items": [
+            {
+                "chrt_id": 1005,
+                "track_number": "WBILTRACK5",
+                "price": 500,
+                "rid": "rid-5",
+                "name": "Product 5",
+                "sale": 0,
+                "size": "XL",
+                "total_price": 500,
+                "nm_id": 2005,
+                "brand": "Brand5",
+                "status": 200
+            }
+        ],
+        "locale": "en",
+        "internal_signature": "",
+        "customer_id": "cust5",
+        "delivery_service": "service5",
+        "shardkey": "5",
+        "sm_id": 5,
+        "date_created": "2021-11-26T06:28:19Z",
+        "oof_shard": "5"
+    }
+}

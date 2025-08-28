@@ -1,0 +1,65 @@
+{
+    "action": "create_order",
+    "body": {
+        "order_uid": "b563feb7b2b84b6test-3",
+        "track_number": "WBILTRACK3",
+        "entry": "WBIL",
+        "delivery": {
+            "name": "Bob Example",
+            "phone": "+10000000003",
+            "zip": "10003",
+            "city": "City3",
+            "address": "Street 3",
+            "region": "Region3",
+            "email": "bob@example.com"
+        },
+        "payment": {
+            "transaction": "tx-3",
+            "request_id": "",
+            "currency": "USD",
+            "provider": "mockpay",
+            "amount": 300,
+            "payment_dt": 1637907729,
+            "bank": "bank3",
+            "delivery_cost": 15,
+            "goods_total": 285,
+            "custom_fee": 0
+        },
+        "items": [
+            {
+                "chrt_id": 1003,
+                "track_number": "WBILTRACK3",
+                "price": 300,
+                "rid": "rid-31",
+                "name": "Product 3",
+                "sale": 0,
+                "size": "L",
+                "total_price": 300,
+                "nm_id": 2003,
+                "brand": "Brand3",
+                "status": 200
+            },
+            {
+                "chrt_id": 1003,
+                "track_number": "WBILTRACK2",
+                "price": 200,
+                "rid": "rid-32",
+                "name": "Product 2",
+                "sale": 0,
+                "size": "M",
+                "total_price": 200,
+                "nm_id": 2002,
+                "brand": "Brand2",
+                "status": 200
+            }
+        ],
+        "locale": "en",
+        "internal_signature": "",
+        "customer_id": "cust3",
+        "delivery_service": "service3",
+        "shardkey": "3",
+        "sm_id": 3,
+        "date_created": "2021-11-26T06:26:19Z",
+        "oof_shard": "3"
+    }
+}

@@ -1,0 +1,93 @@
+services:
+    postgres:
+        image: postgres:17-alpine
+        ports:
+            - "5432:5432"
+        volumes:
+            - ./db/postgres/data:/var/lib/postgresql/data
+        environment:
+            POSTGRES_DB: ${DB_NAME}
+            POSTGRES_USER: ${DB_USER}
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    back:
+        build: .
+        restart: always
+        depends_on:
+            postgres:
+                condition: service_healthy
+        environment:
+            DB_HOST: ${DB_HOST}
+            DB_USER: ${DB_USER}
+            DB_PASSWORD: ${DB_PASSWORD}
+            DB_NAME: ${DB_NAME}
+            DB_PORT: ${DB_PORT}
+        ports:
+            - "8080:8080"
+        env_file:
+            - ./.env
+        volumes:
+            - .:/back
+
+    producer:
+        build: .
+        depends_on:
+            kafka:
+                condition: service_healthy
+        ports:
+            - "8081:8081"
+        volumes:
+            - .:/producer
+
+    consumer:
+        build: .
+        depends_on:
+            - producer
+        ports:
+            - "8082:8082"
+        volumes:
+            - .:/consumer
+
+    front:
+        image: node:20-alpine
+        ports:
+            - "5173:5173"
+        working_dir: /app
+        volumes:
+            - ./front:/app
+        command: sh -lc "npm install && npm run build && npm run preview -- --host 0.0.0.0 --port 5173"
+        depends_on:
+            - back
+
+    kafka:
+        image: apache/kafka-native
+        ports:
+            - "9092:9092"
+        healthcheck:
+            test: nc -z localhost 9092 || exit -1
+            start_period: 15s
+            interval: 5s
+            timeout: 10s
+            retries: 10
+        environment:
+            KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
+            KAFKA_LISTENERS: CONTROLLER://localhost:9091,HOST://0.0.0.0:9092,DOCKER://0.0.0.0:9093
+            KAFKA_ADVERTISED_LISTENERS: HOST://localhost:9092,DOCKER://kafka:9093
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT,HOST:PLAINTEXT
+
+            # Settings required for KRaft mode
+            KAFKA_NODE_ID: 1
+            KAFKA_PROCESS_ROLES: broker,controller
+            KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+            KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9091
+
+            # Listener to use for broker-to-broker communication
+            KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
+
+            # Required for a single node cluster
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
