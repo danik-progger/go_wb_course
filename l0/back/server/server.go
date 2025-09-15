@@ -7,6 +7,7 @@ import (
 	"l0/cache"
 	"l0/db"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -14,8 +15,8 @@ import (
 type Server struct {
 	Port   string
 	Router *mux.Router
-	DB     *db.DB
-	Cache  *cache.Cache
+	DB     db.DBInterface
+	Cache  cache.CacheInterface
 }
 
 func InitServer(port string) *Server {
@@ -40,7 +41,7 @@ func InitServer(port string) *Server {
 	})
 	fmt.Println("🟢 CORS middleware added")
 
-	cache := cache.InitCache()
+	cache := cache.InitCache(5 * time.Minute)
 	fmt.Println("🟢 Cache initialized")
 
 	s := &Server{
@@ -128,7 +129,11 @@ func (s *Server) handleAddOrder(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(order)
+	if err := json.NewEncoder(w).Encode(order); err != nil {
+		fmt.Printf("🔴 Error encoding order: %s\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	fmt.Println("🟢 Successful request AddOrder")
 }
 
@@ -140,21 +145,24 @@ func (s *Server) handleGetOrderById(w http.ResponseWriter, r *http.Request) {
 	if val, ok := s.Cache.Get(id); ok {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(val))
+		if _, err := w.Write([]byte(val)); err != nil {
+			fmt.Printf("🔴 Error writing response: %s\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		fmt.Printf("🟢 Cache hit for uid=%s\n", id)
 		return
 	}
 	fmt.Printf("🟡 Cache miss for uid=%s\n", id)
 
 	orders, err := s.DB.GetOrderById(id)
-	if orders == nil {
-		fmt.Printf("🔴 Error in GetOrderById: %s\n", err)
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
 	if err != nil {
 		fmt.Printf("🔴 Error in GetOrderById: %s\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if orders == nil {
+		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -168,6 +176,10 @@ func (s *Server) handleGetOrderById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(orders)
+	if err := json.NewEncoder(w).Encode(orders); err != nil {
+		fmt.Printf("🔴 Error encoding orders: %s\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	fmt.Println("🟢 Successful request GetOrderById")
 }

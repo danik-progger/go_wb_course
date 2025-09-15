@@ -53,7 +53,6 @@
     .label { font-size: 0.8rem; color: #666; }
     .value { font-weight: 600; font-size: 1rem; }
 
-    .items-title { margin: 10px 0; font-size: 1rem; }
     .items { list-style: none; padding: 0; margin: 0 0 20px 0; display: flex; flex-direction: column; gap: 8px; }
 
     .item { display:flex; justify-content: space-between; align-items: center; padding: 10px 20px; border-radius: 20px; background: #fff; border: 1px solid rgb(200, 200, 200); }

@@ -2,7 +2,10 @@ module producer
 
 go 1.23.4
 
-require github.com/segmentio/kafka-go v0.4.49
+require (
+	github.com/brianvoe/gofakeit/v7 v7.4.0
+	github.com/segmentio/kafka-go v0.4.49
+)
 
 require (
 	github.com/klauspost/compress v1.18.0 // indirect

@@ -115,15 +115,4 @@
         justify-content: space-between;
         gap: 20px;
     }
-    ul, section {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: start;
-    }
-
-    p {
-        text-align: left;
-        margin: 10px;
-    }
 </style>

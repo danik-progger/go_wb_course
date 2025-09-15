@@ -15,6 +15,13 @@ type DB struct {
 	prov *gorm.DB
 }
 
+type DBInterface interface {
+	GetAllOrders(limit, offset int) ([]Order, error)
+	HasOrders() (bool, error)
+	GetOrderById(id string) (*Order, error)
+	AddOrder(order *Order) error
+}
+
 func getDSN() string {
 	err := godotenv.Load()
 	if err != nil {
@@ -104,7 +111,7 @@ func (db *DB) AddOrder(order *Order) error {
 	if err := db.prov.First(&existing, "order_uid = ?", order.OrderUID).Error; err == nil {
 		fmt.Printf("🟡 DB: Order already exists, uid: %s\n", order.OrderUID)
 		return nil
-	} else if err != nil && err != gorm.ErrRecordNotFound {
+	} else if err != gorm.ErrRecordNotFound {
 		fmt.Printf("🔴 DB: Failed checking existing order: %s\n", err)
 		return err
 	}
