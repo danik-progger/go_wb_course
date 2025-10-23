@@ -11,7 +11,7 @@ func InitUsersDb() *UsersDb {
 }
 
 func (db *UsersDb) AddUser(u entities.User) error {
-	db.storage[u.Id()] = u
+	db.storage[u.Id] = u
 	return nil
 }
 

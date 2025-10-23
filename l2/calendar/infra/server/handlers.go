@@ -70,7 +70,7 @@ func (s *Server) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetEventsForDay(w http.ResponseWriter, r *http.Request) {
-	starting_at := s.router.GetUrlParam(r, "date")
+	starting_at := r.URL.Query().Get("date")
 	starting_at_date, err := time.Parse("2006-01-02", starting_at)
 	if err != nil {
 		fmt.Println("🔴 Failed to parse date")
@@ -100,7 +100,7 @@ func (s *Server) GetEventsForDay(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetEventsForWeek(w http.ResponseWriter, r *http.Request) {
-	starting_at := s.router.GetUrlParam(r, "date")
+	starting_at := r.URL.Query().Get("date")
 	starting_at_date, err := time.Parse("2006-01-02", starting_at)
 	if err != nil {
 		fmt.Println("🔴 Failed to parse date")
@@ -130,7 +130,7 @@ func (s *Server) GetEventsForWeek(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetEventsForMonth(w http.ResponseWriter, r *http.Request) {
-	starting_at := s.router.GetUrlParam(r, "date")
+	starting_at := r.URL.Query().Get("date")
 	starting_at_date, err := time.Parse("2006-01-02", starting_at)
 	if err != nil {
 		fmt.Println("🔴 Failed to parse date")
