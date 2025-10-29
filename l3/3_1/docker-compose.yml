@@ -4,7 +4,7 @@ services:
   # Create service with RabbitMQ.
   message-broker:
     image: rabbitmq:3-management-alpine
-    container_name: message-broker
+    container_name: delay_send
     ports:
       - 5672:5672 # for sender and consumer connections
       - 15672:15672 # for serve RabbitMQ GUI
@@ -15,8 +15,8 @@ services:
     networks:
       - dev-network
 
-  sender:
-    container_name: api
+  api:
+    container_name: delay_sender_api
     ports:
       - 3000:3000
     build:
@@ -24,14 +24,36 @@ services:
       dockerfile: ./api/Dockerfile
     environment:
       AMQP_SERVER_URL: amqp://guest:guest@message-broker:5672/
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:${DB_PORT}/${DB_NAME}
     restart: always
     networks:
       - dev-network
     depends_on:
-      - message-broker
+      message-broker:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - ./db/postgres/data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dev-network
 
   consumer:
-    container_name: consumer
+    container_name: delay_sender_consumer
     build:
       context: .
       dockerfile: ./consumer/Dockerfile
@@ -41,8 +63,7 @@ services:
     networks:
       - dev-network
     depends_on:
-      - sender
-      - message-broker
+      - api
 
 networks:
   # Create a new Docker network.

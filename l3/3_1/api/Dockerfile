@@ -7,13 +7,17 @@ WORKDIR /build
 COPY ./api/go.mod ./api/go.sum ./
 RUN go mod download
 
+COPY ./api/queue ./queue
+COPY ./api/db ./db
+COPY ./api/routes ./routes
+
 # Copy the code into the container.
 COPY ./api/main.go .
 
 # Set necessary environment variables needed
 # for our image and build the sender.
 ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
-RUN go build -ldflags="-s -w" -o sender .
+RUN go build -ldflags="-s -w" -o api .
 
 FROM scratch
 

@@ -4,6 +4,7 @@ import (
 	"api/db/pg"
 	"context"
 	_ "embed"
+	"os"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -17,7 +18,7 @@ type DB struct {
 func InitDB() (*DB, error) {
 	ctx := context.Background()
 
-	conn, err := pgx.Connect(ctx, "user=pqgotest dbname=pqgotest sslmode=verify-full")
+	conn, err := pgx.Connect(ctx, os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return nil, err
 	}

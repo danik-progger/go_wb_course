@@ -1,4 +1,4 @@
-package main
+package routes
 
 import (
 	"api/db"
@@ -24,7 +24,7 @@ func msgToResp(m pg.Message) []byte {
 	return []byte(fmt.Sprintf("{id: %d, status: %s, send_at: %s, body: %s}", m.ID, m.Status, m.SendAt, m.Body))
 }
 
-func setUpRoutes() http.Handler {
+func SetUpRoutes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(cors.Handler(cors.Options{
@@ -38,7 +38,7 @@ func setUpRoutes() http.Handler {
 
 	q, err := db.InitDB()
 	if err != nil {
-		log.Fatal("Failed to initialize DB")
+		log.Fatalf("Failed to initialize DB: %v", err)
 	}
 
 	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {

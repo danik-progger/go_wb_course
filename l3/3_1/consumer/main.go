@@ -22,6 +22,18 @@ func main() {
 	}
 	defer channelRabbitMQ.Close()
 
+	_, err = channelRabbitMQ.QueueDeclare(
+		"QueueService1", // queue name
+		true,            // durable
+		false,           // auto delete
+		false,           // exclusive
+		false,           // no wait
+		nil,             // arguments
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	// Subscribing to QueueService1 for getting messages.
 	messages, err := channelRabbitMQ.Consume(
 		"QueueService1", // queue name
