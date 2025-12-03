@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Processing Service</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        input, button {
+            padding: 8px;
+            margin: 5px;
+        }
+        .preview {
+            margin-top: 20px;
+        }
+        img {
+            max-width: 300px;
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Processing Service</h1>
+    <p>Welcome to the image processing application.</p>
+
+    <!-- Upload Form -->
+    <div class="form-group">
+        <h2>Upload Image</h2>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="imageInput" name="image" accept="image/*" required>
+            <button type="submit">Upload Image</button>
+        </form>
+        <div id="uploadResult"></div>
+    </div>
+
+    <!-- Get Image Form -->
+    <div class="form-group">
+        <h2>Get Processed Image</h2>
+        <form id="getImageForm">
+            <input type="text" id="getImageId" placeholder="Enter image ID">
+            <button type="submit">Get Image</button>
+        </form>
+        <div id="imagePreview" class="preview"></div>
+    </div>
+
+    <!-- Delete Image Form -->
+    <div class="form-group">
+        <h2>Delete Image</h2>
+        <form id="deleteForm">
+            <input type="text" id="deleteId" placeholder="Enter image ID">
+            <button type="submit">Delete Image</button>
+        </form>
+        <div id="deleteResult"></div>
+    </div>
+
+    <script>
+        // Upload image
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData();
+            const fileInput = document.getElementById('imageInput');
+            formData.append('image', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                document.getElementById('uploadResult').innerHTML =
+                    `<p>Image uploaded successfully! ID: ${result.id}</p>`;
+            } catch (error) {
+                document.getElementById('uploadResult').innerHTML =
+                    `<p>Error uploading image: ${error.message}</p>`;
+            }
+        });
+
+        // Get image
+        document.getElementById('getImageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('getImageId').value;
+            if (!id) {
+                alert('Please enter an image ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/image/${id}`);
+                if (response.ok) {
+                    const imageUrl = `/image/${id}`;
+                    document.getElementById('imagePreview').innerHTML =
+                        `<img src="${imageUrl}" alt="Processed Image">`;
+                } else {
+                    document.getElementById('imagePreview').innerHTML =
+                        `<p>Image not found</p>`;
+                }
+            } catch (error) {
+                document.getElementById('imagePreview').innerHTML =
+                    `<p>Error getting image: ${error.message}</p>`;
+            }
+        });
+
+        // Delete image
+        document.getElementById('deleteForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('deleteId').value;
+            if (!id) {
+                alert('Please enter an image ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/image/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    document.getElementById('deleteResult').innerHTML =
+                        `<p>Image deleted successfully!</p>`;
+                } else {
+                    document.getElementById('deleteResult').innerHTML =
+                        `<p>Error deleting image</p>`;
+                }
+            } catch (error) {
+                document.getElementById('deleteResult').innerHTML =
+                    `<p>Error deleting image: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
