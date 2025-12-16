@@ -1,0 +1,36 @@
+# Example Usage
+
+## Start the profiler server
+```bash
+go run main.go --port=8080 --gcpercent=100
+```
+
+## Get metrics
+```bash
+curl http://localhost:8080/metrics
+```
+
+## Allocate memory to see metrics change
+```bash
+curl "http://localhost:8080/allocate?size=5242880"  # Allocates 5MB
+```
+
+## Trigger GC and allocate memory
+```bash
+curl "http://localhost:8080/allocate?size=1048576&gc=true"  # Allocates 1MB and triggers GC
+```
+
+## View health
+```bash
+curl http://localhost:8080/health
+```
+
+## Get pprof heap profile
+```bash
+go tool pprof http://localhost:8080/debug/pprof/heap
+```
+
+## Get pprof goroutine profile
+```bash
+go tool pprof http://localhost:8080/debug/pprof/goroutine
+```
