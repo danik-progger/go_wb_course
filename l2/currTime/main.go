@@ -2,21 +2,16 @@ package main
 
 import (
 	"fmt"
+	"currTime/pkg"
 	"os"
-	"time"
-
-	"github.com/beevik/ntp"
 )
 
-func PrintTime() {
-	for {
-		t, err := ntp.Time("0.beevik-ntp.pool.ntp.org")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "🔴 Error queriing time from NTP: %s", err)
-			os.Exit(0)
-		}
-
-		fmt.Printf("Current time is: %v\n", t.Second())
-		time.Sleep(1 * time.Second)
+func main() {
+	t, err := pkg.GetNTPTime("0.beevik-ntp.pool.ntp.org")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "🔴 Error querying time from NTP: %s\n", err)
+		os.Exit(1)
 	}
+
+	pkg.PrintTime(t)
 }
