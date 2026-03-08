@@ -6,21 +6,23 @@ import (
 	"io"
 	"os"
 	"regexp"
-	"strconv"
+	"sort"
 	"strings"
 )
 
 func Grep(conf *GrepConfig, reader io.Reader) {
-	if conf.filePath != "" {
-		file, err := os.Open(conf.filePath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "🔴 Error opening file: %v", err)
-			os.Exit(1)
+	if reader == nil {
+		if conf.filePath != "" {
+			file, err := os.Open(conf.filePath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "🔴 Error opening file: %v", err)
+				os.Exit(1)
+			}
+			defer file.Close()
+			reader = file
+		} else {
+			reader = os.Stdin
 		}
-		defer file.Close()
-		reader = file
-	} else {
-		reader = os.Stdin
 	}
 
 	scanner := bufio.NewScanner(reader)
@@ -65,7 +67,6 @@ func processLines(lines []string, conf *GrepConfig) {
 	}
 
 	matchCount := 0
-	linesToPrint := make(map[int]bool)
 	matchIndices := []int{}
 
 	for i, line := range lines {
@@ -84,30 +85,65 @@ func processLines(lines []string, conf *GrepConfig) {
 		return
 	}
 
+	if len(matchIndices) == 0 {
+		return
+	}
+
+	isMatch := make(map[int]bool)
+	for _, idx := range matchIndices {
+		isMatch[idx] = true
+	}
+
+	if conf.before == 0 && conf.after == 0 {
+		for _, idx := range matchIndices {
+			if conf.lineNum {
+				fmt.Printf("%d:%s\n", idx+1, lines[idx])
+			} else {
+				fmt.Println(lines[idx])
+			}
+		}
+		return
+	}
+
+	// With context
+	var blocks [][2]int
 	for _, idx := range matchIndices {
 		start := max(idx-conf.before, 0)
 		end := min(idx+conf.after, len(lines)-1)
-		for i := start; i <= end; i++ {
-			linesToPrint[i] = true
+		blocks = append(blocks, [2]int{start, end})
+	}
+
+	sort.Slice(blocks, func(i, j int) bool {
+		return blocks[i][0] < blocks[j][0]
+	})
+
+	merged := [][2]int{blocks[0]}
+	for i := 1; i < len(blocks); i++ {
+		last := &merged[len(merged)-1]
+		current := blocks[i]
+		if current[0] <= last[1] { // Merge overlapping blocks
+			if current[1] > last[1] {
+				last[1] = current[1]
+			}
+		} else {
+			merged = append(merged, current)
 		}
 	}
 
-	print(lines, linesToPrint, conf)
-
-}
-
-func print(lines []string, linesToPrint map[int]bool, conf *GrepConfig) {
-	var printed bool
-	for i := range len(lines) {
+	for i, block := range merged {
 		if i > 0 {
-			if printed && !linesToPrint[i-1] {
-				fmt.Println("--")
-			}
+			fmt.Println("--")
+		}
+		for lineIdx := block[0]; lineIdx <= block[1]; lineIdx++ {
 			if conf.lineNum {
-				fmt.Print(strconv.Itoa(i+1) + ":")
+				separator := "-"
+				if isMatch[lineIdx] {
+					separator = ":"
+				}
+				fmt.Printf("%d%s%s\n", lineIdx+1, separator, lines[lineIdx])
+			} else {
+				fmt.Println(lines[lineIdx])
 			}
-			fmt.Println(lines[i])
-			printed = true
 		}
 	}
 }

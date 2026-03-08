@@ -22,6 +22,20 @@ package main
 // 	arr2 := []int{4, 3, 5, 6, 8, 16, -8}
 // 	// Intersection is {3, 4, 8, 16}
 
-// 	res := intersect(arr1, arr2)
-// 	fmt.Println(res)
+// 	arr3 := []int8{1, 2, 3, 4, 8, 11, 16}
+// 	arr4 := []int8{4, 3, 5, 6, 8, 16, -8}
+// 	// Intersection is {3, 4, 8, 16}
+
+// 	arr5 := []bool{true, false}
+// 	arr6 := []bool{true, true, true}
+// 	// Intersection is {true}
+	
+// 	arr7 := []string{"true", "abacaba", "false"}
+// 	arr8 := []string{"true", "abacaba", "a"}
+// 	// Intersection is {"true", "abacaba"}
+
+// 	fmt.Println(intersect(arr1, arr2))
+// 	fmt.Println(intersect(arr3, arr4))
+// 	fmt.Println(intersect(arr5, arr6))
+// 	fmt.Println(intersect(arr7, arr8))
 // }
