@@ -193,6 +193,7 @@ func TestCdCommand(t *testing.T) {
 		{
 			name:    "nonexistent path",
 			path:    "/nonexistent/path/xyz123",
+			setup:   func() (string, func()) { return "", func() {} },
 			wantErr: true,
 		},
 	}
