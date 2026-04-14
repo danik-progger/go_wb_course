@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// Simplified MockUsersRepo for debugging.
 type MockUsersRepo struct {
 	users map[entities.Id]entities.User
 }
@@ -32,31 +31,68 @@ func (m *MockUsersRepo) HasUser(id entities.Id) (bool, error) {
 	return ok, nil
 }
 
-// Simplified MockEventsRepo for debugging.
-type MockEventsRepo struct{}
+type MockEventsRepo struct {
+	events map[entities.Id][]entities.Event
+}
 
 func (m *MockEventsRepo) AddUser(u_id entities.Id) error {
 	return nil
 }
 
 func (m *MockEventsRepo) AddEvent(u_id entities.Id, e entities.Event) (entities.Id, error) {
-	return 1, nil
+	if m.events == nil {
+		m.events = make(map[entities.Id][]entities.Event)
+	}
+	id := entities.Id(len(m.events[u_id]) + 1)
+	e.Id = id
+	m.events[u_id] = append(m.events[u_id], e)
+	return id, nil
 }
-func (m *MockEventsRepo) UpdateEvent(u_id, e_id entities.Id, e entities.Event) error { return nil }
-func (m *MockEventsRepo) DeleteEvent(u_id, e_id entities.Id) error                   { return nil }
+func (m *MockEventsRepo) UpdateEvent(u_id, e_id entities.Id, e entities.Event) error {
+	for i, ev := range m.events[u_id] {
+		if ev.Id == e_id {
+			m.events[u_id][i] = e
+			return nil
+		}
+	}
+	return nil
+}
+func (m *MockEventsRepo) DeleteEvent(u_id, e_id entities.Id) error {
+	events := m.events[u_id]
+	for i, ev := range events {
+		if ev.Id == e_id {
+			m.events[u_id] = append(events[:i], events[i+1:]...)
+			return nil
+		}
+	}
+	return nil
+}
 func (m *MockEventsRepo) GetEvent(u_id, e_id entities.Id) (entities.Event, error) {
-	return entities.Event{}, nil
+	for _, e := range m.events[u_id] {
+		if e.Id == e_id {
+			return e, nil
+		}
+	}
+	return entities.Event{}, errors.New("event not found")
 }
 func (m *MockEventsRepo) GetEventsInRange(u_id entities.Id, from time.Time, to time.Time) ([]entities.Event, error) {
-	return nil, nil
+	var result []entities.Event
+	for _, e := range m.events[u_id] {
+		if !e.StartingAt.Before(from) && e.StartingAt.Before(to) {
+			result = append(result, e)
+		}
+	}
+	return result, nil
 }
 
 func TestCalendar_AddEvent_NewUser(t *testing.T) {
 	usersRepo := &MockUsersRepo{}
 	eventsRepo := &MockEventsRepo{}
 	cal := Calendar[repos.UsersRepo, repos.EventsRepo]{Users: usersRepo, Events: eventsRepo}
+
+	dateStr := time.Now().Format("2006-01-02")
+	event, _ := entities.NewEvent(0, dateStr, "Test Event")
 	user := entities.NewUser(1, "testuser")
-	event := entities.NewEvent(0, time.Time{}, time.Time{}, "Test Event")
 
 	id, err := cal.AddEvent(user, event)
 

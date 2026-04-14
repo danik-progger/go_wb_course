@@ -7,6 +7,7 @@ import (
 	"calendar/infra/db"
 	logger "calendar/infra/log"
 	"fmt"
+	"os"
 )
 
 type Server struct {
@@ -15,6 +16,13 @@ type Server struct {
 }
 
 func NewServer(port string) *Server {
+	if port == "" {
+		port = os.Getenv("PORT")
+	}
+	if port == "" {
+		port = ":8080"
+	}
+
 	r := connections.NewRouter(port)
 	usersDB := db.InitUsersDb()
 	eventsDB, err := db.InitEventsDb()
@@ -42,10 +50,10 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) setUpRoutes() {
-	s.router.Post("/users/{user_id}/events", s.CreateEvent)
-	s.router.Post("/users/{user_id}/events/{event_id}", s.UpdateEvent)
-	s.router.Post("/users/{user_id}/events/{event_id}/delete", s.DeleteEvent) // Or use DELETE method
-	s.router.Get("/users/{user_id}/events/day", s.GetEventsForDay)
-	s.router.Get("/users/{user_id}/events/week", s.GetEventsForWeek)
-	s.router.Get("/users/{user_id}/events/month", s.GetEventsForMonth)
+	s.router.Post("/create_event", s.CreateEvent)
+	s.router.Post("/update_event", s.UpdateEvent)
+	s.router.Post("/delete_event", s.DeleteEvent)
+	s.router.Get("/events_for_day", s.GetEventsForDay)
+	s.router.Get("/events_for_week", s.GetEventsForWeek)
+	s.router.Get("/events_for_month", s.GetEventsForMonth)
 }

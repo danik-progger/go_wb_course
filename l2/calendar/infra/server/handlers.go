@@ -3,158 +3,209 @@ package server
 import (
 	"calendar/entities"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 )
 
+type jsonResponse struct {
+	Result string           `json:"result,omitempty"`
+	Error  string           `json:"error,omitempty"`
+	Events []entities.Event `json:"events,omitempty"`
+}
+
+func writeError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(jsonResponse{Error: msg})
+}
+
+func writeResult(w http.ResponseWriter, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(jsonResponse{Result: msg})
+}
+
 func (s *Server) CreateEvent(w http.ResponseWriter, r *http.Request) {
-	u_id := s.router.GetUrlParam(r, "user_id")
-	user_id, err := strconv.ParseInt(u_id, 10, 64)
-	if err != nil {
-		fmt.Println("🔴 Failed to parse user_id")
+	userIDStr := r.FormValue("user_id")
+	if userIDStr == "" {
+		userIDStr = r.URL.Query().Get("user_id")
+	}
+	if userIDStr == "" {
+		writeError(w, http.StatusBadRequest, "missing user_id")
 		return
 	}
-	u, err := s.cal.GetUser(entities.Id(user_id))
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
-		fmt.Printf("🔴 Failed to find user with id: %d\n", user_id)
+		writeError(w, http.StatusBadRequest, "invalid user_id")
 		return
 	}
 
-	var event entities.Event
-	json.NewDecoder(r.Body).Decode(&event)
-	s.cal.AddEvent(u, event)
+	dateStr := r.FormValue("date")
+	if dateStr == "" {
+		dateStr = r.URL.Query().Get("date")
+	}
+	if dateStr == "" {
+		writeError(w, http.StatusBadRequest, "missing date")
+		return
+	}
+
+	title := r.FormValue("event")
+	if title == "" {
+		title = r.URL.Query().Get("event")
+	}
+
+	event, err := entities.NewEvent(0, dateStr, title)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid date format, expected YYYY-MM-DD")
+		return
+	}
+
+	u := entities.NewUser(entities.Id(userID), "")
+	id, err := s.cal.AddEvent(u, event)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to create event")
+		return
+	}
+
+	writeResult(w, "event "+strconv.FormatInt(int64(id), 10)+" created")
 }
 
 func (s *Server) UpdateEvent(w http.ResponseWriter, r *http.Request) {
-	u_id := s.router.GetUrlParam(r, "user_id")
-	user_id, err := strconv.ParseInt(u_id, 10, 64)
+	userIDStr := r.FormValue("user_id")
+	if userIDStr == "" {
+		userIDStr = r.URL.Query().Get("user_id")
+	}
+	eventIDStr := r.FormValue("event_id")
+	if eventIDStr == "" {
+		eventIDStr = s.router.GetUrlParam(r, "event_id")
+	}
+
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
-		fmt.Println("🔴 Failed to parse user_id")
+		writeError(w, http.StatusBadRequest, "invalid user_id")
 		return
 	}
-	u, err := s.cal.GetUser(entities.Id(user_id))
+	eventID, err := strconv.ParseInt(eventIDStr, 10, 64)
 	if err != nil {
-		fmt.Printf("🔴 Failed to find user with id: %d\n", user_id)
+		writeError(w, http.StatusBadRequest, "invalid event_id")
 		return
 	}
 
-	var event entities.Event
-	json.NewDecoder(r.Body).Decode(&event)
-	s.cal.UpdateEvent(u, event)
+	dateStr := r.FormValue("date")
+	if dateStr == "" {
+		dateStr = r.URL.Query().Get("date")
+	}
+	title := r.FormValue("event")
+	if title == "" {
+		title = r.URL.Query().Get("event")
+	}
+
+	date, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid date format, expected YYYY-MM-DD")
+		return
+	}
+
+	u := entities.NewUser(entities.Id(userID), "")
+	event := entities.Event{
+		Id:          entities.Id(eventID),
+		StartingAt:  date,
+		EndingAt:    date,
+		Description: title,
+	}
+
+	if err := s.cal.UpdateEvent(u, event); err != nil {
+		writeError(w, http.StatusServiceUnavailable, "failed to update event")
+		return
+	}
+
+	writeResult(w, "event updated")
 }
 
 func (s *Server) DeleteEvent(w http.ResponseWriter, r *http.Request) {
-	u_id := s.router.GetUrlParam(r, "user_id")
-	user_id, err := strconv.ParseInt(u_id, 10, 64)
+	userIDStr := r.FormValue("user_id")
+	if userIDStr == "" {
+		userIDStr = r.URL.Query().Get("user_id")
+	}
+	eventIDStr := r.FormValue("event_id")
+	if eventIDStr == "" {
+		eventIDStr = s.router.GetUrlParam(r, "event_id")
+	}
+
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
-		fmt.Println("🔴 Failed to parse user_id")
+		writeError(w, http.StatusBadRequest, "invalid user_id")
 		return
 	}
-	event_id := s.router.GetUrlParam(r, "event_id")
-	e_id, err := strconv.ParseInt(event_id, 10, 64)
+	eventID, err := strconv.ParseInt(eventIDStr, 10, 64)
 	if err != nil {
-		fmt.Println("🔴 Failed to parse user_id")
-		return
-	}
-	u, err := s.cal.GetUser(entities.Id(user_id))
-	if err != nil {
-		fmt.Printf("🔴 Failed to find user with id: %d\n", user_id)
+		writeError(w, http.StatusBadRequest, "invalid event_id")
 		return
 	}
 
-	e, err := s.cal.GetEvent(u, e_id)
+	u := entities.NewUser(entities.Id(userID), "")
 
-	s.cal.DeleteEvent(u, e)
+	e, err := s.cal.GetEvent(u, entities.Id(eventID))
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "event not found")
+		return
+	}
+
+	if err := s.cal.DeleteEvent(u, e); err != nil {
+		writeError(w, http.StatusServiceUnavailable, "failed to delete event")
+		return
+	}
+
+	writeResult(w, "event deleted")
 }
 
 func (s *Server) GetEventsForDay(w http.ResponseWriter, r *http.Request) {
-	starting_at := r.URL.Query().Get("date")
-	starting_at_date, err := time.Parse("2006-01-02", starting_at)
-	if err != nil {
-		fmt.Println("🔴 Failed to parse date")
-		return
-	}
-	ending_at := starting_at_date.AddDate(0, 0, 1)
-
-	user_id := s.router.GetUrlParam(r, "user_id")
-	user_id_int, err := strconv.ParseInt(user_id, 10, 64)
-	if err != nil {
-		fmt.Println("🔴 Failed to parse user id")
-		return
-	}
-	u, err := s.cal.GetUser(entities.Id(user_id_int))
-	if err != nil {
-		fmt.Println("🔴 Failed to find user by id")
-		return
-	}
-	events, err := s.cal.EventsInRange(u, starting_at_date, ending_at)
-	if err != nil {
-		fmt.Println("🔴 Failed to find events")
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(events)
+	s.getEventsInRange(w, r, 1)
 }
 
 func (s *Server) GetEventsForWeek(w http.ResponseWriter, r *http.Request) {
-	starting_at := r.URL.Query().Get("date")
-	starting_at_date, err := time.Parse("2006-01-02", starting_at)
-	if err != nil {
-		fmt.Println("🔴 Failed to parse date")
-		return
-	}
-	ending_at := starting_at_date.AddDate(0, 0, 7)
-
-	user_id := s.router.GetUrlParam(r, "user_id")
-	user_id_int, err := strconv.ParseInt(user_id, 10, 64)
-	if err != nil {
-		fmt.Println("🔴 Failed to parse user id")
-		return
-	}
-	u, err := s.cal.GetUser(entities.Id(user_id_int))
-	if err != nil {
-		fmt.Println("🔴 Failed to find user by id")
-		return
-	}
-	events, err := s.cal.EventsInRange(u, starting_at_date, ending_at)
-	if err != nil {
-		fmt.Println("🔴 Failed to find events")
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(events)
+	s.getEventsInRange(w, r, 7)
 }
 
 func (s *Server) GetEventsForMonth(w http.ResponseWriter, r *http.Request) {
-	starting_at := r.URL.Query().Get("date")
-	starting_at_date, err := time.Parse("2006-01-02", starting_at)
-	if err != nil {
-		fmt.Println("🔴 Failed to parse date")
-		return
-	}
-	ending_at := starting_at_date.AddDate(0, 1, 0)
+	s.getEventsInRange(w, r, 30)
+}
 
-	user_id := s.router.GetUrlParam(r, "user_id")
-	user_id_int, err := strconv.ParseInt(user_id, 10, 64)
-	if err != nil {
-		fmt.Println("🔴 Failed to parse user id")
+func (s *Server) getEventsInRange(w http.ResponseWriter, r *http.Request, days int) {
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		writeError(w, http.StatusBadRequest, "missing date")
 		return
 	}
-	u, err := s.cal.GetUser(entities.Id(user_id_int))
+
+	startDate, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		fmt.Println("🔴 Failed to find user by id")
+		writeError(w, http.StatusBadRequest, "invalid date format, expected YYYY-MM-DD")
 		return
 	}
-	events, err := s.cal.EventsInRange(u, starting_at_date, ending_at)
+	endDate := startDate.AddDate(0, 0, days)
+
+	userIDStr := r.URL.Query().Get("user_id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
-		fmt.Println("🔴 Failed to find events")
+		writeError(w, http.StatusBadRequest, "invalid user_id")
+		return
+	}
+
+	u, err := s.cal.GetUser(entities.Id(userID))
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "user not found")
+		return
+	}
+
+	events, err := s.cal.EventsInRange(u, startDate, endDate)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get events")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(events)
 }
